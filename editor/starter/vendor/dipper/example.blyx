@@ -1,0 +1,9 @@
+use dipper;
+
+fn main() {
+    // Tokens for a quoted field containing a comma followed by a second field.
+    let shape = di_shape([2, 0, 1, 0, 2, 1, 0, 3]);
+    println!(at(shape, 0));
+    println!(at(shape, 1));
+    println!(len(di_shape([2, 0])));
+}

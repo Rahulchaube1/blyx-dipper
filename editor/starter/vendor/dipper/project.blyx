@@ -1,0 +1,18 @@
+use std::cli;
+use std::fs;
+use csv;
+fn main() {
+    let args = cli_args();
+    if args_len(args) > 1 { stderr_line("Usage: project [two-column.csv]"); process_exit(2); }
+    let mut input = "id,note\r\n1,\"a comma, and a \"\"quote\"\"\"\r\n2,\"two\nlines\"\r\n";
+    if args_len(args) == 1 { input = read_text(args_at(args, 0)); }
+    let records = di_parse(input);
+    if !di_ok(records) { stderr_line(args_at(records, 0)); process_exit(1); }
+    if di_bad_row(records, 2) != -1 { stderr_line("Expected two fields in each row"); process_exit(1); }
+    let mut row = 1;
+    let mut cell = di_cell(records, row, 1);
+    while args_len(cell) == 1 {
+        println!(args_at(cell, 0));
+        row += 1; cell = di_cell(records, row, 1);
+    }
+}

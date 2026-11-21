@@ -1,10 +1,14 @@
-<img src="assets/logo.png" width="112" height="112" alt="Dipper bird logo">
+<img src="assets/logo.png" width="112" height="112" alt="A round brown dipper with a white breast leans towards a ripple.">
 
 # Blyx Dipper
 
 Parse quoted CSV records, preserve embedded line breaks, and validate a row width before consuming a file.
 
 Splitting each line on commas changes both field contents and record counts when a field contains a quoted comma or newline. RFC 4180 describes the quoting and doubled-quote rules that the Dipper parser uses. [RFC 4180, Common Format and MIME Type for CSV Files](https://www.rfc-editor.org/rfc/rfc4180#section-2)
+
+## Editor extension
+
+Install **RahulChaube.blyx-dipper** to run the worked example and use the framework’s function completions in a Blyx file. Open an empty `.blyx` file, enter `blyx-dipper-demo`, then choose **Blyx: Run File**. [Editor downloads](https://www.blyx-lang.space/packages/dipper#editor) · [Download the extension](https://github.com/Rahulchaube1/blyxxxx/releases/download/framework-editors-v0.1.0/blyx-dipper-0.1.0.vsix) · [Starter with framework source](https://github.com/Rahulchaube1/blyxxxx/releases/download/framework-editors-v0.1.0/blyx-dipper-starter-0.1.0.zip)
 
 ## Install and run
 
