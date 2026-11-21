@@ -1,0 +1,24 @@
+use std::cli;
+use csv;
+use dipper;
+
+fn check(ok: bool, label: str) {
+    if !ok { stderr_line(label); process_exit(1); }
+}
+
+fn main() {
+    let records = di_parse("name,note\r\nAda,\"x,y\"\r\nBo,\"two\r\nlines with \"\"marks\"\"\"\r\n");
+    check(di_ok(records) && di_bad_row(records, 2) == -1, "rectangular table");
+    check(args_at(di_cell(records, 1, 1), 0) == "x,y", "quoted comma");
+    check(args_at(di_cell(records, 2, 1), 0) == "two\r\nlines with \"marks\"", "embedded CRLF and quote");
+    check(args_len(di_cell(records, 3, 0)) == 0, "terminal CRLF");
+    let empty_cell = di_cell(di_parse("v,"), 0, 1);
+    check(args_len(empty_cell) == 1 && args_at(empty_cell, 0) == "", "trailing empty cell");
+    check(args_len(di_parse("")) == 0 && args_len(di_parse("\n")) == 2, "empty input and blank line");
+    check(!di_ok(di_parse("\"abc")) && !di_ok(di_parse("bare\"")) && !di_ok(di_parse("\"closed\"x")), "malformed quoting");
+    check(di_bad_row(di_parse("a,b\nc"), 2) == 1 && di_bad_row(di_parse("\""), 2) == -2, "width error versus syntax error");
+    check(args_at(di_cell(di_parse(" x ,雪"), 0, 0), 0) == " x " && args_at(di_cell(di_parse(" x ,雪"), 0, 1), 0) == "雪", "spaces and UTF-8");
+    check(len(di_shape([0, 4])) == 0 && at(di_shape([1]), 1) == 2.0 && at(di_shape([]), 0) == 0.0, "token stream");
+    check(args_at(di_cell(di_parse("\"\"\"\""), 0, 0), 0) == "\"", "escaped quote as only data");
+    println!("dipper checks passed");
+}

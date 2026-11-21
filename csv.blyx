@@ -1,0 +1,110 @@
+use std::cli;
+use std::text;
+use dipper;
+
+// Split at four ASCII delimiters. Text tokens retain all other UTF-8 bytes.
+// Prefixing every literal with 't' prevents collisions with delimiter tokens.
+fn di_lex(input: str) -> arglist {
+    let quotes = text_split(input, "\"");
+    let mut tokens = args_new();
+    let mut q = 0;
+    while q < args_len(quotes) {
+        if q > 0 { tokens = args_push(tokens, "q"); }
+        let lines = text_split(args_at(quotes, q), "\n");
+        let mut n = 0;
+        while n < args_len(lines) {
+            if n > 0 { tokens = args_push(tokens, "n"); }
+            let carriage = text_split(args_at(lines, n), "\r");
+            let mut r = 0;
+            while r < args_len(carriage) {
+                if r > 0 { tokens = args_push(tokens, "r"); }
+                let pieces = text_split(args_at(carriage, r), ",");
+                let mut c = 0;
+                while c < args_len(pieces) {
+                    if c > 0 { tokens = args_push(tokens, "c"); }
+                    let value = args_at(pieces, c);
+                    if value != "" { tokens = args_push(tokens, text_concat("t", value)); }
+                    c += 1;
+                }
+                r += 1;
+            }
+            n += 1;
+        }
+        q += 1;
+    }
+    tokens
+}
+fn di_error(message: str) -> arglist { args_push(args_new(), text_concat("E", message)) }
+// Fvalue marks a cell and R marks the end of a row. A single E... means failure.
+pub fn di_parse(input: str) -> arglist {
+    let tokens = di_lex(input);
+    let mut out = args_new();
+    let mut field = "";
+    let mut state = 0;
+    let mut pending = false;
+    let mut i = 0;
+    while i < args_len(tokens) {
+        let token = args_at(tokens, i);
+        let mut kind = 0;
+        let mut value = text_after(token, "t");
+        if token == "c" { kind = 1; value = ","; }
+        if token == "q" { kind = 2; value = "\""; }
+        if token == "n" { kind = 3; value = "\n"; }
+        if token == "r" {
+            kind = 3; value = "\r";
+            if i + 1 < args_len(tokens) && args_at(tokens, i + 1) == "n" { i += 1; value = "\r\n"; }
+        }
+        let next = di_transition(state, kind);
+        if next < 0 { return di_error(text_concat("Unexpected CSV token ", int_text(i + 1))); }
+        pending = true;
+        if kind == 0 || (state == 2 && kind != 2) || (state == 3 && kind == 2) {
+            field = text_concat(field, value);
+        }
+        if state != 2 && (kind == 1 || kind == 3) {
+            out = args_push(out, text_concat("F", field));
+            field = "";
+            if kind == 3 { out = args_push(out, "R"); pending = false; }
+        }
+        state = next;
+        i += 1;
+    }
+    if !di_complete(state) { return di_error("Unclosed quoted field"); }
+    if pending {
+        out = args_push(out, text_concat("F", field));
+        out = args_push(out, "R");
+    }
+    out
+}
+pub fn di_ok(records: arglist) -> bool {
+    args_len(records) == 0 || !text_starts(args_at(records, 0), "E")
+}
+// Return a one-element list for a present cell, including an empty cell.
+pub fn di_cell(records: arglist, row: i64, column: i64) -> arglist {
+    if !di_ok(records) || row < 0 || column < 0 { return args_new(); }
+    let mut r = 0;
+    let mut c = 0;
+    let mut i = 0;
+    while i < args_len(records) {
+        let value = args_at(records, i);
+        if value == "R" { r += 1; c = 0; } else {
+            if r == row && c == column { return args_push(args_new(), text_after(value, "F")); }
+            c += 1;
+        }
+        i += 1;
+    }
+    args_new()
+}
+pub fn di_bad_row(records: arglist, width: i64) -> i64 {
+    if !di_ok(records) || width < 0 { return -2; }
+    let mut row = 0;
+    let mut count = 0;
+    let mut i = 0;
+    while i < args_len(records) {
+        if args_at(records, i) == "R" {
+            if count != width { return row; }
+            row += 1; count = 0;
+        } else { count += 1; }
+        i += 1;
+    }
+    return -1;
+}
